@@ -17,6 +17,7 @@ library(pROC)
 library(randomForest)
 library(xgboost)
 library(ROSE)
+library(reshape2)
 
 # 2. 資料前處理
 data_stroke <- read.csv("/Users/tommy/Desktop/R程式設計/bio.csv")
@@ -48,13 +49,56 @@ p2 <- ggplot(balanced_data, aes(x=stroke, y=age, fill=stroke)) +
   geom_boxplot() +
   labs(title="Age Distribution by Stroke Status")
 
+# BMI分布圖
+p3 <- ggplot(balanced_data, aes(x=bmi)) + 
+  geom_histogram(bins=30, fill="lightgreen", color="black") +
+  labs(title="BMI Distribution", x="BMI", y="Count")
+
+# 血糖分布圖
+p4 <- ggplot(balanced_data, aes(x=avg_glucose_level)) + 
+  geom_histogram(bins=30, fill="salmon", color="black") +
+  labs(title="Glucose Level Distribution", x="Average Glucose Level", y="Count")
+
+# 中風與各風險因子的關係箱型圖
+p5 <- ggplot(balanced_data, aes(x=stroke, y=avg_glucose_level, fill=stroke)) + 
+  geom_boxplot() +
+  labs(title="Glucose Level Distribution by Stroke Status")
+
+p6 <- ggplot(balanced_data, aes(x=stroke, y=bmi, fill=stroke)) + 
+  geom_boxplot() +
+  labs(title="BMI Distribution by Stroke Status")
+
 print(p1)
 print(p2)
+print(p3)
+print(p4)
+print(p5)
+print(p6)
 
-# 相關性分析
+# 4.1 相關性分析
 numeric_vars <- balanced_data[,c("age", "avg_glucose_level", "bmi")]
 cor_matrix <- cor(numeric_vars, use="complete.obs")
 corrplot(cor_matrix, method="color")
+
+# 4.2 風險因子相關性熱圖
+risk_factors_cor <- balanced_data %>%
+  mutate(across(c(hypertension, heart_disease, stroke), as.numeric)) %>%
+  dplyr::select(age, avg_glucose_level, bmi, hypertension, heart_disease, stroke)
+
+# 計算相關係數矩陣
+cor_matrix_all <- cor(risk_factors_cor)
+
+# 創建熱圖
+heatmap_plot <- ggplot(data = melt(cor_matrix_all), 
+                       aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint=0) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title="Correlation Heatmap of Risk Factors")
+
+# 顯示熱圖
+print(heatmap_plot)
 
 # 5. 資料分割和模型準備
 set.seed(1035)
@@ -213,6 +257,54 @@ p_age_risk <- ggplot(age_risk_analysis) +
 
 print(p_age_risk)
 
+# 8.2 風險因子組合分析
+risk_combination_analysis <- balanced_data %>%
+  group_by(hypertension, heart_disease) %>%
+  summarise(
+    stroke_rate = mean(as.numeric(as.character(stroke))),
+    avg_age = mean(age),
+    avg_glucose = mean(avg_glucose_level),
+    avg_bmi = mean(bmi),
+    n = n()
+  )
+
+# 視覺化風險組合
+p_risk_combination <- ggplot(risk_combination_analysis, 
+                             aes(x=interaction(hypertension, heart_disease), 
+                                 y=stroke_rate)) +
+  geom_bar(stat="identity", fill="lightblue") +
+  geom_text(aes(label=sprintf("%.1f%%", stroke_rate*100)), vjust=-0.5) +
+  labs(title="Stroke Rate by Risk Factor Combination",
+       x="Risk Factors (Hypertension_HeartDisease)",
+       y="Stroke Rate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p_risk_combination)
+
+# 8.3 年齡和風險因子交互作用
+age_risk_interaction <- balanced_data %>%
+  mutate(age_group = cut(age, breaks=seq(0, 100, by=20))) %>%
+  group_by(age_group, hypertension, heart_disease) %>%
+  summarise(
+    stroke_rate = mean(as.numeric(as.character(stroke))),
+    n = n()
+  )
+
+interaction_plot <- ggplot(age_risk_interaction, 
+                           aes(x=age_group, y=stroke_rate, 
+                               color=interaction(hypertension, heart_disease))) +
+  geom_line(aes(group=interaction(hypertension, heart_disease))) +
+  geom_point() +
+  labs(title="Stroke Rate by Age and Risk Factors",
+       x="Age Group",
+       y="Stroke Rate",
+       color="Risk Factors") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(interaction_plot)
+
 # 9. 特徵重要性分析
 # 9.1 隨機森林特徵重要性
 rf_importance <- data.frame(
@@ -250,6 +342,67 @@ p_model_comparison <- ggplot(model_selection_criteria,
   theme_minimal()
 
 print(p_model_comparison)
+
+# 10.1 預測結果視覺化
+# ROC曲線比較
+# 獲取 ROC 曲線的座標
+gam_coords <- coords(gam_roc, "all")
+rf_coords <- coords(rf_roc, "all")
+xgb_coords <- coords(xgb_roc, "all")
+
+# 創建數據框
+roc_data <- rbind(
+  data.frame(specificity = gam_coords$specificity, 
+             sensitivity = gam_coords$sensitivity, 
+             Model = "GAM"),
+  data.frame(specificity = rf_coords$specificity, 
+             sensitivity = rf_coords$sensitivity, 
+             Model = "Random Forest"),
+  data.frame(specificity = xgb_coords$specificity, 
+             sensitivity = xgb_coords$sensitivity, 
+             Model = "XGBoost")
+)
+
+# 繪製 ROC 曲線
+roc_plot <- ggplot(roc_data, aes(x = 1-specificity, y = sensitivity, color = Model)) +
+  geom_line() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  labs(title = "ROC Curves Comparison",
+       x = "1 - Specificity",
+       y = "Sensitivity") +
+  theme_minimal() +
+  scale_color_manual(values = c("GAM" = "blue", 
+                                "Random Forest" = "red", 
+                                "XGBoost" = "green")) +
+  # 添加 AUC 值到圖例
+  annotate("text", x = 0.75, y = 0.25, 
+           label = paste("AUC (GAM):", round(auc(gam_roc), 3))) +
+  annotate("text", x = 0.75, y = 0.20, 
+           label = paste("AUC (RF):", round(auc(rf_roc), 3))) +
+  annotate("text", x = 0.75, y = 0.15, 
+           label = paste("AUC (XGB):", round(auc(xgb_roc), 3)))
+
+# 顯示圖形
+print(roc_plot)
+
+# 預測概率分布
+pred_dist <- data.frame(
+  Actual = factor(test_data$stroke),
+  GAM = gam_pred,
+  RF = rf_prob,
+  XGB = xgb_pred
+) %>%
+  reshape2::melt(id.vars="Actual")
+
+pred_dist_plot <- ggplot(pred_dist, aes(x=value, fill=Actual)) +
+  geom_density(alpha=0.5) +
+  facet_wrap(~variable) +
+  labs(title="Prediction Probability Distribution by Model",
+       x="Predicted Probability",
+       y="Density") +
+  theme_minimal()
+
+print(pred_dist_plot)
 
 # 輸出所有比較結果
 print("詳細模型評估結果：")
