@@ -133,6 +133,36 @@ model_comparison <- data.frame(
   )
 )
 print(model_comparison)
+# 7.1 擴充模型評估指標
+model_evaluation <- function(actual, predicted, predicted_prob) {
+  conf_matrix <- table(actual, predicted)
+  
+  accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+  sensitivity <- conf_matrix[2,2] / sum(conf_matrix[2,])
+  specificity <- conf_matrix[1,1] / sum(conf_matrix[1,])
+  precision <- conf_matrix[2,2] / sum(conf_matrix[,2])
+  f1_score <- 2 * (precision * sensitivity) / (precision + sensitivity)
+  
+  return(data.frame(
+    Accuracy = accuracy,
+    Sensitivity = sensitivity,
+    Specificity = specificity,
+    F1_Score = f1_score
+  ))
+}
+
+# 更新模型比較結果
+models_comparison <- rbind(
+  cbind(Model = "GAM", 
+        model_evaluation(test_data$stroke, gam_class, gam_pred),
+        AUC = auc(gam_roc)),
+  cbind(Model = "RandomForest", 
+        model_evaluation(test_data$stroke, rf_pred, rf_prob),
+        AUC = auc(rf_roc)),
+  cbind(Model = "XGBoost", 
+        model_evaluation(test_data$stroke, xgb_class, xgb_pred),
+        AUC = auc(xgb_roc))
+)
 
 # 8. 分層分析和視覺化
 age_group_analysis <- balanced_data %>%
@@ -156,3 +186,71 @@ p_final <- ggplot(age_group_analysis) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 print(p_final)
+
+# 8.1 擴充年齡層分析
+age_risk_analysis <- balanced_data %>%
+  group_by(age_group) %>%
+  summarise(
+    stroke_rate = mean(as.numeric(as.character(stroke))),
+    hypertension_rate = mean(as.numeric(as.character(hypertension))),
+    heart_disease_rate = mean(as.numeric(as.character(heart_disease))),
+    avg_glucose = mean(avg_glucose_level),
+    avg_bmi = mean(bmi),
+    n_samples = n()
+  )
+
+# 視覺化年齡層風險特徵
+p_age_risk <- ggplot(age_risk_analysis) +
+  geom_line(aes(x = age_group, y = stroke_rate, group = 1, color = "Stroke Rate")) +
+  geom_line(aes(x = age_group, y = hypertension_rate, group = 1, color = "Hypertension Rate")) +
+  geom_line(aes(x = age_group, y = heart_disease_rate, group = 1, color = "Heart Disease Rate")) +
+  scale_color_manual(values = c("red", "blue", "green")) +
+  labs(title = "Risk Factors by Age Group",
+       y = "Rate",
+       color = "Risk Factor") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p_age_risk)
+
+# 9. 特徵重要性分析
+# 9.1 隨機森林特徵重要性
+rf_importance <- data.frame(
+  Feature = rownames(importance(rf_model)),
+  Importance = importance(rf_model)[,1]
+) %>%
+  arrange(desc(Importance))
+
+# 視覺化特徵重要性
+p_importance <- ggplot(rf_importance, 
+                       aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Feature Importance from Random Forest",
+       x = "Features",
+       y = "Importance Score") +
+  theme_minimal()
+
+print(p_importance)
+
+# 10. 模型選擇準則
+model_selection_criteria <- models_comparison %>%
+  mutate(
+    Balanced_Score = (Sensitivity + Specificity) / 2,
+    Final_Score = (AUC + Balanced_Score) / 2
+  ) %>%
+  arrange(desc(Final_Score))
+
+# 視覺化模型比較
+p_model_comparison <- ggplot(model_selection_criteria, 
+                             aes(x = Model, y = Final_Score)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  labs(title = "Model Comparison - Final Scores",
+       y = "Final Score") +
+  theme_minimal()
+
+print(p_model_comparison)
+
+# 輸出所有比較結果
+print("詳細模型評估結果：")
+print(model_selection_criteria)
