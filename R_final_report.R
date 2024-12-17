@@ -82,25 +82,46 @@ write.csv(stroke_data_clean,
 # 2. 資料匯入
 data_stroke <- read.csv("/Users/tommy/Desktop/R程式設計/stroke_data_cleaned.csv")
 data_stroke <- data_stroke[,-1]
+# 移除 smoking_status 為 Unknown 的資料
+data_clean <- subset(data_stroke, smoking_status != "Unknown")
+
+# ever_married 轉換 (Yes=1, No=0)
+data_clean$ever_married <- as.numeric(data_clean$ever_married == "Yes")
+
+# work_type 轉換
+# Private=0, Self-employed=1, Govt_job=2, children=3, Never_worked=4
+data_clean$work_type <- factor(data_clean$work_type, 
+                               levels = c("Private", "Self-employed", "Govt_job", 
+                                          "children", "Never_worked"))
+data_clean$work_type <- as.numeric(data_clean$work_type) - 1
+
+# Residence_type 轉換 (Urban=1, Rural=0)
+data_clean$Residence_type <- as.numeric(data_clean$Residence_type == "Urban")
+
+# smoking_status 轉換
+# never smoked=0, formerly smoked=1, smokes=2
+data_clean$smoking_status <- factor(data_clean$smoking_status, 
+                                    levels = c("never smoked", "formerly smoked", "smokes"))
+data_clean$smoking_status <- as.numeric(data_clean$smoking_status) - 1
 
 # 3. 探索性資料
 # 探索資料
-summary(data_stroke)
-head(data_stroke)
+summary(data_clean)
+head(data_clean)
 # 年齡分佈圖
-p1 <- ggplot(data_stroke, aes(x=age)) + 
+p1 <- ggplot(data_clean, aes(x=age)) + 
   geom_histogram(bins=30, fill="skyblue", color="black") +
   labs(title="Age Distribution", x="Age", y="Count") +
   theme_classic()
 print(p1)
 
 # 中風與年齡分組長條圖
-gender_stroke<-ggplot(data_stroke, aes(x = age, fill = as.factor(stroke))) +
+gender_stroke<-ggplot(data_clean, aes(x = age, fill = as.factor(stroke))) +
   geom_histogram(position = "fill") +
   labs(title = "Stroke Rate by Age", x = "Age", y = "Stroke Rate", fill = "STROKE")
 print(gender_stroke)
 
-age_group_analysis <- data_stroke %>%
+age_group_analysis <- data_clean %>%
   mutate(age_group = cut(age, breaks = seq(0, 100, by = 10))) %>%
   group_by(age_group) %>%
   summarise(stroke_rate = mean(as.numeric(as.character(stroke))))
@@ -113,7 +134,7 @@ p2 <- ggplot(age_group_analysis, aes(x = age_group, y = stroke_rate)) +
 print(p2)
 
 # 計算性別分布及百分比
-gender_distribution <- data_stroke %>%
+gender_distribution <- data_clean %>%
   group_by(gender) %>%
   summarise(count = n(), .groups = "drop") %>%
   mutate(percentage = count/sum(count) * 100,
@@ -132,7 +153,7 @@ gender_pie <- ggplot(gender_distribution, aes(x = "", y = count, fill = gender))
 print(gender_pie)
 
 # 計算性別與中風關係的分布及百分比
-gender_stroke_distribution <- data_stroke %>%
+gender_stroke_distribution <- data_clean %>%
   group_by(gender, stroke) %>%
   summarise(count = n(), .groups = "drop") %>%
   mutate(percentage = count/sum(count) * 100,
@@ -157,29 +178,24 @@ gender_donut <- ggplot(gender_stroke_distribution,
 print(gender_donut)
 
 # BMI分布圖
-p3 <- ggplot(data_stroke, aes(x=bmi)) + 
+p3 <- ggplot(data_clean, aes(x=bmi)) + 
   geom_histogram(bins=30, fill="lightgreen", color="black") +
   labs(title="BMI Distribution", x="BMI", y="Count") +
   theme_classic()
 print(p3)
 
 # 血糖分布圖
-p4 <- ggplot(data_stroke, aes(x=avg_glucose_level)) +
+p4 <- ggplot(data_clean, aes(x=avg_glucose_level)) +
   geom_histogram(bins=30, fill="salmon", color="black") +
   labs(title="Glucose Level Distribution", x="Average Glucose Level", y="Count") +
   theme_classic()
 print(p4)
 
-# 3.1 相關性分析
-numeric_vars <- data_stroke[,c("age", "avg_glucose_level", "bmi")]
-cor_matrix <- cor(numeric_vars, use="complete.obs")
-corrplot(cor_matrix, method="color")
-
-# 3.2 風險因子相關性熱圖
+# 3.1 風險因子相關性熱圖
 # 數據準備
-risk_factors_cor <- data_stroke %>%
+risk_factors_cor <- data_clean %>%
   mutate(across(c(hypertension, heart_disease, stroke), as.numeric)) %>%
-  dplyr::select(age, avg_glucose_level, bmi, hypertension, heart_disease, stroke)
+  dplyr::select(age, bmi, avg_glucose_level, stroke)
 
 # 計算相關係數矩陣
 cor_matrix_all <- cor(risk_factors_cor)
@@ -223,9 +239,9 @@ print(heatmap_plot)
 
 # 4. 資料分割和模型準備
 set.seed(1035)
-split_index <- sample(1:2, nrow(data_stroke), replace=TRUE, prob=c(0.7, 0.3))
-train_data <- data_stroke[split_index==1,]
-test_data <- data_stroke[split_index==2,]
+split_index <- sample(1:2, nrow(data_clean), replace=TRUE, prob=c(0.7, 0.3))
+train_data <- data_clean[split_index==1,]
+test_data <- data_clean[split_index==2,]
 
 # 確保因子型別正確
 train_data$stroke <- as.factor(train_data$stroke)
@@ -346,7 +362,7 @@ models_comparison <- rbind(
 
 # 7. 分層分析和視覺化
 # 首先創建年齡組別
-age_group_analysis <- data_stroke %>%
+age_group_analysis <- data_clean %>%
   # 先創建年齡組別
   mutate(age_group = cut(age, 
                          breaks = seq(0, max(age, na.rm = TRUE) + 10, by = 10),
@@ -399,7 +415,7 @@ p_final <- ggplot(age_group_analysis) +
 print(p_final)
 
 # 7.1 擴充年齡層分析
-age_risk_analysis <- data_stroke %>%
+age_risk_analysis <- data_clean %>%
   # 先創建年齡組別
   mutate(age_group = cut(age, 
                          breaks = seq(0, max(age, na.rm = TRUE) + 10, by = 10),
@@ -507,7 +523,7 @@ p_metrics <- ggplot(age_risk_analysis) +
 print(p_metrics)
 
 # 7.2 風險因子組合分析
-risk_combination_analysis <- data_stroke %>%
+risk_combination_analysis <- data_clean %>%
   group_by(hypertension, heart_disease) %>%
   summarise(
     stroke_rate = mean(as.numeric(as.character(stroke))),
@@ -532,7 +548,7 @@ p_risk_combination <- ggplot(risk_combination_analysis,
 print(p_risk_combination)
 
 # 7.3 年齡和風險因子交互作用
-age_risk_interaction <- data_stroke %>%
+age_risk_interaction <- data_clean %>%
   mutate(age_group = cut(age, breaks=seq(0, 100, by=20))) %>%
   group_by(age_group, hypertension, heart_disease) %>%
   summarise(
