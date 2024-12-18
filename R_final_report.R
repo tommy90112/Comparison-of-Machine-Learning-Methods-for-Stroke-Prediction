@@ -27,7 +27,7 @@ library(ggrepel)
 
 # 1. 資料前處理
 # 讀取資料
-stroke_data <- read.csv("/Users/tommy/Downloads/healthcare-dataset-stroke-data.csv.txt", 
+stroke_data <- read.csv("/Users/tommy/Downloads/healthcare-dataset-stroke-data.csv", 
                         header = TRUE,
                         sep = ",",          
                         quote = "",         
@@ -103,6 +103,11 @@ data_clean$Residence_type <- as.numeric(data_clean$Residence_type == "Urban")
 data_clean$smoking_status <- factor(data_clean$smoking_status, 
                                     levels = c("never smoked", "formerly smoked", "smokes"))
 data_clean$smoking_status <- as.numeric(data_clean$smoking_status) - 1
+
+# 將清理後的資料寫出為CSV
+write.csv(data_clean, 
+          file = "/Users/tommy/Desktop/R程式設計/data_cleaned.csv",
+          row.names = FALSE)
 
 # 3. 探索性資料
 # 探索資料
@@ -672,3 +677,85 @@ print(pred_dist_plot)
 # 輸出所有比較結果
 print("詳細模型評估結果：")
 print(model_selection_criteria)
+
+# 載入必要的套件
+library(car)
+library(dplyr)
+
+
+# 將類別變數轉換為因子型態
+data_clean$gender <- as.factor(data_clean$gender)
+data_clean$hypertension <- as.factor(data_clean$hypertension)
+data_clean$heart_disease <- as.factor(data_clean$heart_disease)
+data_clean$ever_married <- as.factor(data_clean$ever_married)
+data_clean$work_type <- as.factor(data_clean$work_type)
+data_clean$Residence_type <- as.factor(data_clean$Residence_type)
+data_clean$smoking_status <- as.factor(data_clean$smoking_status)
+data_clean$stroke <- as.factor(data_clean$stroke)
+
+# 建立線性模型用於VIF分析
+# 選擇數值型變數進行VIF分析
+numeric_model <- lm(avg_glucose_level ~ age + bmi, data = data)
+vif_results <- vif(numeric_model)
+
+# 針對類別變數，建立完整模型
+full_model <- glm(stroke ~ age + avg_glucose_level + bmi + 
+                    hypertension + heart_disease + ever_married + 
+                    work_type + Residence_type + smoking_status,
+                  family = binomial(link = "logit"),
+                  data = data)
+
+# 計算類別變數的VIF
+categorical_vif <- vif(full_model)
+
+# 輸出結果
+print("數值變數VIF結果:")
+print(vif_results)
+print("\n類別變數包含的完整模型VIF結果:")
+print(categorical_vif)
+
+
+# 檢查資料是否正確讀取
+str(data_clean)
+
+# 將類別變數轉換為因子型態
+data_clean$gender <- as.factor(data_clean$gender)
+data_clean$hypertension <- as.factor(data_clean$hypertension)
+data_clean$heart_disease <- as.factor(data_clean$heart_disease)
+data_clean$ever_married <- as.factor(data_clean$ever_married)
+data_clean$work_type <- as.factor(data_clean$work_type)
+data_clean$Residence_type <- as.factor(data_clean$Residence_type)
+data_clean$smoking_status <- as.factor(data_clean$smoking_status)
+data_clean$stroke <- as.factor(data_clean$stroke)
+
+# 檢查數值變數的VIF
+numeric_vars <- data_clean %>% 
+  select(age, avg_glucose_level, bmi)
+numeric_model <- lm(avg_glucose_level ~ age + bmi, data = numeric_vars)
+vif_numeric <- vif(numeric_model)
+
+# 建立完整模型（排除不必要的變數）
+full_model <- glm(stroke ~ age + avg_glucose_level + bmi + 
+                    hypertension + heart_disease + ever_married + 
+                    work_type + Residence_type + smoking_status,
+                  family = binomial(link = "logit"),
+                  data = data_clean)
+
+# 計算完整模型的VIF
+vif_full <- vif(full_model)
+
+# 輸出結果
+cat("數值變數VIF結果:\n")
+print(vif_numeric)
+cat("\n完整模型VIF結果:\n")
+print(vif_full)
+
+# 基於VIF結果的變數選擇建議
+cat("\n變數選擇建議：\n")
+high_vif <- names(which(vif_full > 5))  # VIF > 5 視為較高的共線性
+if(length(high_vif) > 0) {
+  cat("建議考慮移除或重新處理以下變數（VIF > 5）：\n")
+  print(high_vif)
+} else {
+  cat("所有變數的VIF值都在可接受範圍內（< 5）\n")
+}
