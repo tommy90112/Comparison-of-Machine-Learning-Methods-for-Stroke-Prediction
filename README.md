@@ -1,8 +1,9 @@
-https://img.shields.io/badge/%E7%A0%94%E7%A9%B6%E9%A0%98%E5%9F%9F-%E4%B8%AD%E9%A2%A8%E9%A0%90%E6%B8%AC-blue
-https://img.shields.io/badge/%E6%A8%A1%E5%9E%8B%E6%AF%94%E8%BC%83-GAM%7CRandomForest%7CXGBoost-orange
-https://img.shields.io/badge/%E8%AA%9E%E8%A8%80-R-lightgrey
-
 # 中風預測模型研究：整合年齡分層與風險因子分析
+
+![研究領域](https://img.shields.io/badge/%E7%A0%94%E7%A9%B6%E9%A0%98%E5%9F%9F-%E4%B8%AD%E9%A2%A8%E9%A0%90%E6%B8%AC-blue)
+![模型比較](https://img.shields.io/badge/%E6%A8%A1%E5%9E%8B%E6%AF%94%E8%BC%83-GAM%7CRandomForest%7CXGBoost-orange)
+![語言](https://img.shields.io/badge/%E8%AA%9E%E8%A8%80-R-lightgrey)
+
 ## 研究概述
 本研究利用現代統計與機器學習技術，建立精確的中風預測模型，並深入探討影響中風發生的關鍵因素。中風是全球主要的死亡和失能原因之一，根據世界衛生組織(WHO)的統計，全球每年約有1500萬人罹患中風，其中500萬人因此死亡，另有500萬人導致永久失能。
 我們比較了三種不同特性的預測模型：
