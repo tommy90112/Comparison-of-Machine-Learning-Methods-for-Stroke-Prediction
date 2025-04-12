@@ -87,20 +87,7 @@
 
 #### 環境要求
 
-R (>= 4.0.0)
+R (≥ 4.0.0)
 
 **必要套件：**
-dplyr
-ggplot2
-corrplot
-MASS
-Epi
-ResourceSelection
-mgcv
-pROC
-randomForest
-xgboost
-ROSE
-reshape2
-readr
-tidyverse
+dplyr、ggplot2、corrplot、MASS、Epi、ResourceSelection、mgcv、pROC、randomForest、xgboost、ROSE、reshape2、readr、tidyverse
