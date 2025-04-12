@@ -40,6 +40,7 @@
 **年齡層別與中風風險：**
 
 ![bar_Chart](image/Stroke-Rate-by-Age-Group.png)
+![bar_Chart](image/Stroke-and-Risk-Factors-Rates-by-Age-Group.png)
 
 - 低年齡層（0-30歲）：中風發生率接近於零
 - 中年層（30-60歲）：30-40歲人群的中風發生率約1.0%，50-60歲升至5.2%
@@ -60,9 +61,9 @@
 
 ![bar_Chart](image/different-gender-of-risk-factor-comparsion.png)
 
-男性整體中風發生率（5.60%）略高於女性（5.03%）
-男性的高血壓（13.44%）和心臟病（9.04%）盛行率均高於女性
-吸菸對男性中風風險的影響更為顯著
+- 男性整體中風發生率（5.60%）略高於女性（5.03%）
+- 男性的高血壓（13.44%）和心臟病（9.04%）盛行率均高於女性
+- 吸菸對男性中風風險的影響更為顯著
 
 **模型效能比較：**
 
