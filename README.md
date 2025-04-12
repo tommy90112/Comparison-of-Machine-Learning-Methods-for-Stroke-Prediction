@@ -58,7 +58,7 @@
 
 **性別差異：**
 
-![bar_Chart](image/Stroke-Rate-by-Risk-Factor-Combination.png)
+![bar_Chart](image/different-gender-of-risk-factor-comparsion.png)
 
 男性整體中風發生率（5.60%）略高於女性（5.03%）
 男性的高血壓（13.44%）和心臟病（9.04%）盛行率均高於女性
