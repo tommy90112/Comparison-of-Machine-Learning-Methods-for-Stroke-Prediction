@@ -46,6 +46,8 @@
 
 **多重風險因子效應：**
 
+![Chart](image/Stroke Rate by Risk Factor Combination.png)
+
 - 無任何風險因子：中風發生率為3.4%
 - 僅有高血壓：中風發生率為13.0%
 - 僅有心臟病：中風發生率為16.4%
