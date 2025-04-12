@@ -39,7 +39,6 @@
 
 **年齡層別與中風風險：**
 
-![bar_Chart](image/Stroke-Rate-by-Age-Group.png)
 ![bar_Chart](image/Stroke-and-Risk-Factors-Rates-by-Age-Group.png)
 
 - 低年齡層（0-30歲）：中風發生率接近於零
